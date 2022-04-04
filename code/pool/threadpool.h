@@ -54,10 +54,10 @@ public:
     template<class F>
     void AddTask(F && task){                            //模板参数将到来的任务加进任务队列
         {
-            std::lock_guard<std::mutex> locker(pool->mtx);  //lock_guard<> 封装一个互斥锁并加锁，离开作用域会自动解锁
-            pool->tasks.emplace(std::forward(tasks));       //forward()完美转发，转进来的值是什么形式传递给下一个函数也是什么形式
+            std::lock_guard<std::mutex> locker(pool_->mtx);  //lock_guard<> 封装一个互斥锁并加锁，离开作用域会自动解锁
+            pool_->tasks.emplace(std::forward<F>(task));       //forward()完美转发，转进来的值是什么形式传递给下一个函数也是什么形式
         }
-        pool->cond.notify_one();                            //随机唤醒一个等待的线程
+        pool_->cond.notify_one();                            //随机唤醒一个等待的线程
     }
 
 private:

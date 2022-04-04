@@ -32,7 +32,7 @@ MYSQL* SqlConnPool::GetConn(){
     //assert(connQue_)
     MYSQL*  tmp = nullptr;
     if(connQue_.empty()){
-        //这里写日志
+        LOG_WARN("SqlConnPool busy!");
         return nullptr;
     }
 
@@ -65,27 +65,27 @@ void SqlConnPool::ClosePool(){
 //初始化数据库连接池
 void SqlConnPool::Init(const char* host, int port,
               const char* user,const char* pwd, 
-              const char* dbName, int connSize){
-                  //assert(connSize > 0);
-                  for(int i = 0; i < connSize; ++i){
-                      MYSQL* sql = nullptr;
-                      mysql_init(sql);
-                      if(!sql){//安全检查
-                          //这里写日志 mysql init error
-                          //assert(sql);
-                      }
+              const char* dbName, int connSize = 10){
+                    assert(connSize > 0);
+                    for(int i = 0; i < connSize; ++i){
+                    MYSQL* sql = nullptr;
+                    sql = mysql_init(sql);
+                    if(!sql){//安全检查
+                        LOG_ERROR("MySql init error!");
+                        assert(sql);
+                    }
 
-                      sql = mysql_real_connect(sql, host, user, pwd, dbName,  port, nullptr, 0);
+                    sql = mysql_real_connect(sql, host, user, pwd, dbName,  port, nullptr, 0);
 
-                      if(!sql){//安全检查
-                        //这里写日志 mysql connect error
-                        //assert(sql);
-                      }
+                    if(!sql){//安全检查
+                        LOG_ERROR("MySql Connect error!");
+                        
+                    }
 
-                      connQue_.push(sql);
+                    connQue_.push(sql);
                   }
 
-                  MAX_CONN_ = connSize;
-                  sem_init(&semId_, 0, connSize);
+                MAX_CONN_ = connSize;
+                sem_init(&semId_, 0, connSize);
               }
 

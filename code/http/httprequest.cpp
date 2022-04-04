@@ -64,7 +64,7 @@ bool HttpRequest::parse(Buffer& buff){
         buff.RetrieveUntil(lineEnd + 2);
 
     }
-    //LOG_DEBUG("[%s], [%s], [%s]", method_.c_str(), path_.c_str(), version_.c_str());
+    LOG_DEBUG("[%s], [%s], [%s]", method_.c_str(), path_.c_str(), version_.c_str());
     return true;
 }
 
@@ -127,7 +127,7 @@ bool HttpRequest::ParseRequestLine_(const std::string& line){
         state_ = HEADERS;                                   //吧状态改为解析报文头
         return true;
     }
-    //LOG_ERROR("RequestLine Error");
+    LOG_ERROR("RequestLine Error");
     return false;
 }
 
@@ -136,7 +136,7 @@ void HttpRequest::ParseBody_(const std::string& line){
     body_ = line;
     ParsePost_();
     state_ = FINISH;
-    //LOG_DEBUG("Body:%s, len:%d", line.c_str(), line.size());
+    LOG_DEBUG("Body:%s, len:%d", line.c_str(), line.size());
 }
 
 
@@ -146,7 +146,7 @@ void HttpRequest::ParsePost_(){
         ParseFromUrlencoded_();
         if(DEFAULT_HTML_TAG.count(path_)){
             int tag = DEFAULT_HTML_TAG.find(path_)->second;
-            //LOG_DEBUG("Tag:%d", tag);
+            LOG_DEBUG("Tag:%d", tag);
             if(tag == 0 || tag == 1){
                 bool isLogin = (tag == 1);
                 if(UserVerify(post_["username"], post_["password"], isLogin)){
@@ -175,9 +175,17 @@ void HttpRequest::ParsePath_(){
     }
 }
 
+int HttpRequest::ConverHex(char ch) {
+    if(ch >= 'A' && ch <= 'F') return ch -'A' + 10;
+    if(ch >= 'a' && ch <= 'f') return ch -'a' + 10;
+    return ch;
+}
+
 //
 void HttpRequest::ParseFromUrlencoded_(){
-     if(body_.size() == 0) { return; }
+    if(body_.size() == 0){ 
+        return; 
+    }
 
     std::string key, value;
     int num = 0;
@@ -204,7 +212,7 @@ void HttpRequest::ParseFromUrlencoded_(){
             value = body_.substr(j, i - j);
             j = i + 1;
             post_[key] = value;
-            //LOG_DEBUG("%s = %s", key.c_str(), value.c_str());
+            LOG_DEBUG("%s = %s", key.c_str(), value.c_str());
             break;
         default:
             break;
@@ -219,7 +227,7 @@ void HttpRequest::ParseFromUrlencoded_(){
 
 bool HttpRequest::UserVerify(const std::string& name, const std::string& pwd, bool isLogin){
     if(name == "" || pwd == "") { return false; }
-    //LOG_INFO("Verify name:%s pwd:%s", name.c_str(), pwd.c_str());
+    LOG_INFO("Verify name:%s pwd:%s", name.c_str(), pwd.c_str());
     MYSQL* sql;
     SqlConnRAII(&sql,  SqlConnPool::Instance());
     assert(sql);
@@ -233,7 +241,7 @@ bool HttpRequest::UserVerify(const std::string& name, const std::string& pwd, bo
     if(!isLogin) { flag = true; }
     /* 查询用户及密码 */
     snprintf(order, 256, "SELECT username, password FROM user WHERE username='%s' LIMIT 1", name.c_str());
-    //LOG_DEBUG("%s", order);
+    LOG_DEBUG("%s", order);
 
     if(mysql_query(sql, order)) { 
         mysql_free_result(res);
@@ -244,37 +252,47 @@ bool HttpRequest::UserVerify(const std::string& name, const std::string& pwd, bo
     fields = mysql_fetch_fields(res);
 
     while(MYSQL_ROW row = mysql_fetch_row(res)) {
-        //LOG_DEBUG("MYSQL ROW: %s %s", row[0], row[1]);
+        LOG_DEBUG("MYSQL ROW: %s %s", row[0], row[1]);
         std::string password(row[1]);
         /* 注册行为 且 用户名未被使用*/
         if(isLogin) {
             if(pwd == password) { flag = true; }
             else {
                 flag = false;
-                //LOG_DEBUG("pwd error!");
+                LOG_DEBUG("pwd error!");
             }
         } 
         else { 
             flag = false; 
-            //LOG_DEBUG("user used!");
+            LOG_DEBUG("user used!");
         }
     }
     mysql_free_result(res);
 
     /* 注册行为 且 用户名未被使用*/
     if(!isLogin && flag == true) {
-        //LOG_DEBUG("regirster!");
+        LOG_DEBUG("regirster!");
         bzero(order, 256);
         snprintf(order, 256,"INSERT INTO user(username, password) VALUES('%s','%s')", name.c_str(), pwd.c_str());
-        //LOG_DEBUG( "%s", order);
+        LOG_DEBUG( "%s", order);
         if(mysql_query(sql, order)) { 
-            //LOG_DEBUG( "Insert error!");
+            LOG_DEBUG( "Insert error!");
             flag = false; 
         }
         flag = true;
     }
     SqlConnPool::Instance()->FreeConn(sql);
-    //LOG_DEBUG( "UserVerify success!!");
+    LOG_DEBUG( "UserVerify success!!");
     return flag;
 }
 
+
+
+
+//获取版本和解压方法
+bool HttpRequest::IsKeepAlive() const {
+    if(header_.count("Connection") == 1) {
+        return header_.find("Connection")->second == "keep-alive" && version_ == "1.1";
+    }
+    return false;
+}

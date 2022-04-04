@@ -33,8 +33,8 @@ void HeapTimer::SwapNode_(size_t i, size_t j){
 bool HeapTimer::siftdown_(size_t index, size_t n){
     assert(index >= 0 && index < heap_.size());
     assert(n >= 0 && n <= heap_.size());
-    int i = index;
-    int j = (i * 2) + 1;
+    size_t i = index;
+    size_t j = (i * 2) + 1;
     while(j < n){
         if(j + 1 < n && heap_[j + 1] < heap_[j]){
             ++j;
@@ -46,6 +46,7 @@ bool HeapTimer::siftdown_(size_t index, size_t n){
         i = j;
         j = i * 2 + 1;
     }
+    return i > index;
 }
 
 //堆里没有则将新增节点，有则调整堆

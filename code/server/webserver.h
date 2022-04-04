@@ -1,7 +1,6 @@
 /*
- * @Author       : mark
- * @Date         : 2020-06-17
- * @copyleft Apache 2.0
+ * @客户端主体类
+ * @2022-3-28
  */ 
 #ifndef WEBSERVER_H
 #define WEBSERVER_H
@@ -22,7 +21,53 @@
 #include "../pool/threadpool.h"
 #include "../pool/sqlconnRAII.h"
 #include "../http/httpconn.h"
+class WebServer {
+public:
+    WebServer(
+        int port, int trigMode, int timeoutMS, bool OptLinger, 
+        int sqlPort, const char* sqlUser, const  char* sqlPwd, 
+        const char* dbName, int connPoolNum, int threadNum,
+        bool openLog, int logLevel, int logQueSize);
 
+    ~WebServer();
+    void Start();
+
+private:
+    bool InitSocket_(); 
+    void InitEventMode_(int trigMode);
+    void AddClient_(int fd, sockaddr_in addr);
+  
+    void DealListen_();
+    void DealWrite_(HttpConn* client);
+    void DealRead_(HttpConn* client);
+
+    void SendError_(int fd, const char*info);
+    void ExtentTime_(HttpConn* client);
+    void CloseConn_(HttpConn* client);
+
+    void OnRead_(HttpConn* client);
+    void OnWrite_(HttpConn* client);
+    void OnProcess(HttpConn* client);           
+
+    static const int MAX_FD = 65536;         //最大连接数
+
+    static int SetFdNonblock(int fd);       //设置非阻塞
+
+    int port_;                      //端口
+    bool openLinger_;               //优雅关闭
+    int timeoutMS_;  /* 毫秒MS */
+    bool isClose_;                  //是否关闭
+    int listenFd_;                  //监听文件描述符
+    char* srcDir_;                  //工作目录
+    
+    uint32_t listenEvent_;          //监听的事件描述符
+    uint32_t connEvent_;            //事件
+   
+    std::unique_ptr<HeapTimer> timer_;              //超时时间智能指针
+    std::unique_ptr<ThreadPool> threadpool_;        //线程池
+    std::unique_ptr<Epoller> epoller_;              //i/o复用 epoll
+    std::unordered_map<int, HttpConn> users_;       //以客户端文件描述符为键，HttpConn为客户端连接信息的类
+};
 
 
 #endif //WEBSERVER_H

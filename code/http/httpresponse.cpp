@@ -60,7 +60,7 @@ HttpResponse::~HttpResponse(){
 }
 
 //初始化响应报文
-void HttpResponse::Init(const std::string& srcDir, std::string& path, bool isKeepAlive = false, int code = -1){
+void HttpResponse::Init(const std::string& srcDir, std::string& path, bool isKeepAlive, int code){
     assert(srcDir != "");
     if(mmFile_){
         UnmapFile();
@@ -160,7 +160,7 @@ void HttpResponse::AddContent_(Buffer &buff){
     }
 
     //使用内存映射提高文件访问速度
-    //LOG_DEBUG("file path %s", (srcDir_ + path_).data());
+    LOG_DEBUG("file path %s", (srcDir_ + path_).data());
     int* mmRet = (int*)mmap(0, mmFileStat_.st_size, PROT_READ, MAP_PRIVATE, srcFd, 0);
     if(*mmRet == -1){
         ErrorContent(buff, "File NotFound!");

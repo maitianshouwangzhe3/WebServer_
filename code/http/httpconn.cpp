@@ -4,6 +4,10 @@
 */
 #include "httpconn.h"
 
+
+const char* HttpConn::srcDir;
+std::atomic<int> HttpConn::userCount;   //连接上来的用户数量
+bool HttpConn::isET;
 //构造函数
 HttpConn::HttpConn(){
     fd_ = -1;
@@ -18,7 +22,7 @@ HttpConn::~HttpConn(){
 
 
 //初始化连接对象
-void HttpConn::init(int sockFd, const struct sockaddr_in& addr){
+void HttpConn::init(int sockFd, const sockaddr_in& addr){
     assert(sockFd > 0);
     userCount++;
     addr_ = addr;
@@ -26,7 +30,7 @@ void HttpConn::init(int sockFd, const struct sockaddr_in& addr){
     isClose_ = false;
     readBuff_.RetrieveAll();            //读缓冲区清零
     writeBuff_.RetrieveAll();           //写缓冲区清零
-    //LOG_INFO("Client[%d](%s:%d) in, userCount:%d", fd_, GetIP(), GetPort(), (int)userCount);
+    LOG_INFO("Client[%d](%s:%d) in, userCount:%d", fd_, GetIP(), GetPort(), (int)userCount);
 
 }
 
@@ -75,10 +79,10 @@ ssize_t HttpConn::write(int* saveErrno){
 void HttpConn::Close(){
     response_.UnmapFile();
     if(isClose_ == false){
-        isClose_ == true;
+        isClose_ = true;
         userCount--;
         close(fd_);
-        //LOG_INFO("Client[%d](%s:%d) quit, UserCount:%d", fd_, GetIP(), GetPort(), (int)userCount);
+        LOG_INFO("Client[%d](%s:%d) quit, UserCount:%d", fd_, GetIP(), GetPort(), (int)userCount);
     }
 }
 
@@ -109,7 +113,7 @@ bool HttpConn::process(){
         return false;
     }
     else if(request_.parse(readBuff_)){             //解析请求报文入口
-        //LOG_DEBUG("%s", request_.path().c_str());
+        LOG_DEBUG("%s", request_.path().c_str());
         response_.Init(srcDir, request_.path(), request_.IsKeepAlive(), 200);
     }
     else{

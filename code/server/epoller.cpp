@@ -11,7 +11,7 @@
 
 
 
-Epoller::Epoller(int maxEvents = 1024) : epollFd_(512), events_(maxEvents){
+Epoller::Epoller(int maxEvents) : epollFd_(512), events_(maxEvents){
     assert(epollFd_ >= 0 && events_.size() > 0);
 }
 
